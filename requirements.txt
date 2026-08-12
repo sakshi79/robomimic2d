@@ -1,0 +1,7 @@
+- numpy
+- pygame
+- pymunk == 6.2.1
+- gymnasium
+- opencv-python
+- click 
+- zarr

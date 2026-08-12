@@ -1,8 +1,8 @@
 """2D parallel-gripper lift task."""
 from __future__ import annotations
 import numpy as np
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 from pymunk.vec2d import Vec2d
 
 from .config import Lift2DConfig

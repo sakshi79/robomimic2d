@@ -16,10 +16,10 @@ Controls:
 - Right-click: toggle gripper open / closed
 - Arrow keys (additive): also move gripper
 - SPACE (toggle): also open / close gripper
-- `R`: retry episode
-- `Q` / Escape: quit
+- `R`: reset
+- `Q` : Escape/ quit
 
-Each completed episode (not retried, with at least one step) is appended to the zarr
+Each completed episode (at least one step) is appended to the zarr
 replay buffer at the `-o`/`--output` path. Other options: `--render-size` (default 96),
 `--window` (default 512).
 

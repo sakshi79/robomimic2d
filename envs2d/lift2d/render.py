@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 import pygame
 
-from diffusion_policy.env.pusht.pymunk_override import DrawOptions
+from envs2d.pymunk_override import DrawOptions
 from .config import Lift2DConfig
 
 def _pg(v):
