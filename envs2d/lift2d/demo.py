@@ -64,6 +64,9 @@ def main(output, render_size, window):
                 g = env.gripper
                 gap = g.right.position.x - g.left.position.x
                 state_vec = np.concatenate([info["pos_agent"], info["block_pose"]])
+                print(f"\r reward={reward:.0f} "
+                      f"grip_val={g.grip_value:+.2f} gap={gap:5.1f}",
+                      end="", flush=True)
 
                 if replay_buffer is not None:
                     episode.append({"img": img,
