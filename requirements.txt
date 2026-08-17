@@ -1,7 +1,7 @@
 - numpy
 - pygame
 - pymunk == 6.2.1
-- gymnasium
+- gymnasium == 1.3.0
 - opencv-python
 - click 
 - zarr
