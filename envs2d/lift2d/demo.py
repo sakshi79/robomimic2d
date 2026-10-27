@@ -16,6 +16,7 @@ def _print_help():
     print("  Right click       : toggle gripper open / closed")
     print("  ↑ ↓ ← → (additive): also move gripper")
     print("  SPACE (toggle)    : also open / close gripper")
+    print("  S / Enter         : save episode, start next")
     print("  R                 : reset env")
     print("  Q / Escape        : quit")
     print("=" * 58)
@@ -56,7 +57,8 @@ def main(output, render_size, window):
                 if cmd == "retry":
                     retry = True
                     break                  # falls through to reset, no window teardown
-
+                if cmd == "save":
+                    break
                 obs, reward, done, info = env.step(act)
                 img = env.render_frame("human")
 

@@ -65,6 +65,7 @@ class Lift2DEnv(gym.Env):
 
     def reset(self):
         self._setup()
+        self._lift_steps = 0
         state = self.reset_to_state
         if state is None:
             rs, ws = self.np_random, self.cfg.window_size
@@ -106,7 +107,9 @@ class Lift2DEnv(gym.Env):
         lifted = self.block.position.y < floor_rest_y - cfg.lift_threshold 
         reward = 1.0 if lifted else 0.0 # robomimic style
         # reward = 1.0 if (lifted and self.gripper.grasped) else 0.0  # physically more accurate
-        return self._get_obs(), reward, False, self._get_info()
+        self._lift_steps = self._lift_steps + 1 if lifted else 0
+        done = self._lift_steps >= cfg.success_hold_steps
+        return self._get_obs(), reward, done, self._get_info()
 
     # ---- render / obs / info ----------------------------------------------
 

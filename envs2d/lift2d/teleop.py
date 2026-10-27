@@ -9,7 +9,7 @@ from .config import Lift2DConfig
 class TeleopController:
     """Translates user input into (command, action).
 
-    command ∈ {"action", "retry", "quit"}.  For "action", the second value is
+    command ∈ {"action", "save", "retry", "quit"}.  For "action", the second value is
     a np.array([tx, ty, grip]); otherwise it is None.
     """
 
@@ -30,6 +30,8 @@ class TeleopController:
                     return "quit", None
                 if event.key == pygame.K_r:
                     return "retry", None
+                if event.key in (pygame.K_s, pygame.K_RETURN):
+                    return "save", None
                 if event.key == pygame.K_SPACE:
                     self.grip_closed = not self.grip_closed
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:

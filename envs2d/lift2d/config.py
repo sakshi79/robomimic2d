@@ -39,7 +39,8 @@ class Lift2DConfig:
 
     # task success: reward = 1 when block is lifted ≥ lift_threshold above floor rest
     # Matches robomimic Lift (0.04 m); our units are ~cm, so 4.0.
-    lift_threshold: float = 4.0  # 50.0 earlier
+    lift_threshold: float = 4.0  # 50.0 original
+    success_hold_steps: int = 70  # consecutive lifted control steps before done (7 s at 10 Hz)
 
     # control params
     sim_hz: int = 100
