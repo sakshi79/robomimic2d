@@ -30,7 +30,7 @@ def _print_help():
 def main(output, render_size, window):
     env = Lift2DEnv(render_size=render_size, window_size=window, render_action=True)
     clock = pygame.time.Clock()
-    plan_idx = 0
+    # plan_idx = 0  # not needed anymore
     _print_help()
 
     try:
@@ -40,7 +40,7 @@ def main(output, render_size, window):
                 seed = replay_buffer.n_episodes
                 print(f"Episode count: {seed}")
             else:
-                replay_buffer, seed = None, 0
+                replay_buffer, seed = None, None
 
             env.seed(seed)
             env.reset()                   # rebuilds the scene, same window
@@ -48,7 +48,8 @@ def main(output, render_size, window):
 
             controller = TeleopController(env.cfg, env.gripper.base.position)
             episode, retry, done = [], False, False
-            pygame.display.set_caption(f"Lift2D  plan_idx:{plan_idx}")
+            caption = f"Lift2D  episode:{seed}" if replay_buffer is not None else "Lift2D"
+            pygame.display.set_caption(caption)
 
             while not done:
                 cmd, act = controller.poll()
@@ -80,7 +81,7 @@ def main(output, render_size, window):
             if not retry and replay_buffer is not None and len(episode) > 0:
                 data_dict = {k: np.stack([x[k] for x in episode]) for k in episode[0]}
                 replay_buffer.add_episode(data_dict, compressors="disk")
-                plan_idx += 1
+                # plan_idx += 1
                 print(f"Saved episode {seed}  ({len(episode)} steps)")
             elif retry:
                 print("Retrying episode...")
