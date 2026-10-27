@@ -7,7 +7,7 @@ RoboMimic2D provides fast-iteration 2D environments that mirror the task structu
 > **Status:** Active development. Policy learning baselines and pip-installable package coming soon.
 
 <p align="center">
-  <img src="assets/lift2d.gif" width="400" alt="Lift2D environment demo"/>
+  <img src="assets/lift2d_demo.gif" width="400" alt="Lift2D environment demo"/>
 </p>
 
 ---
