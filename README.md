@@ -60,8 +60,9 @@ python -m envs2d.lift2d
 | Left-click drag | Move gripper toward cursor |
 | Right-click / Space | Toggle gripper open/closed |
 | Arrow keys | Move gripper (additive) |
-| `R` | Reset episode |
-| `Q` / Escape | Quit |
+| `S` / Enter | End episode (saved when recording) and start the next |
+| `R` | Discard current episode and restart |
+| `Q` / Escape | Quit (current episode is not saved) |
 
 ### Record Demonstrations
 
@@ -69,7 +70,8 @@ python -m envs2d.lift2d
 python -m envs2d.lift2d -o data/lift.zarr
 ```
 
-Each completed episode is appended to the zarr replay buffer. Options: `--render-size` (default 96), `--window` (default 512).
+An episode ends automatically once the block has stayed lifted for `success_hold_steps` consecutive control steps (default 70, i.e. 7 s at 10 Hz), or when you press `S` / Enter. Ended episodes are appended to the zarr replay buffer; `R` discards the current episode and `Q` quits without saving it. Recording resumes from the existing episode count, and episode *i* is seeded with `i` so its initial layout is reproducible. Each step stores `img` (render), `state` (gripper xy + block x, y, θ) and `action` (target x, target y, grip). Options: `--render-size` (default 96), `--window` (default 512).
+
 
 ### Gymnasium API
 
