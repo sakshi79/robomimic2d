@@ -73,19 +73,23 @@ python -m envs2d.lift2d -o data/lift.zarr
 An episode ends automatically once the block has stayed lifted for `success_hold_steps` consecutive control steps (default 70, i.e. 7 s at 10 Hz), or when you press `S` / Enter. Ended episodes are appended to the zarr replay buffer; `R` discards the current episode and `Q` quits without saving it. Recording resumes from the existing episode count, and episode *i* is seeded with `i` so its initial layout is reproducible. Each step stores `img` (render), `state` (gripper xy + block x, y, θ) and `action` (target x, target y, grip). Options: `--render-size` (default 96), `--window` (default 512).
 
 
-### Gymnasium API
+### Gymnasium-style API
 
 ```python
-from envs2d.lift2d.env import Lift2DEnv
+import gymnasium as gym
+import envs2d    # registers all env
 
-env = Lift2DEnv()             # or Lift2DEnv(render_size=84, block_mass=2.0)
-obs = env.reset()             # obs['image']: (3,96,96), obs['agent_pos']: (2,)
+env = gym.make("Lift2D-v0")   # or gym.make("Lift2D-v0", render_size=84, block_mass=2.0)
+obs, info = env.reset(seed=0) # obs['image']: (3,96,96), obs['agent_pos']: (2,)
 
 for step in range(1000):
     action = policy(obs)      # [target_x, target_y, grip]
-    obs, reward, done, info = env.step(action)
+    obs, reward, terminated, truncated, info = env.step(action)
     # info: pos_agent, vel_agent, block_pose, grasped, grip, n_contacts
+    if terminated or truncated:
+        obs, info = env.reset()
 ```
+`terminated` is True once the block has been held lifted for `success_hold_steps`; `truncated` is True after `max_episode_steps`. Actions are in pixel coordinates; for RL, wrap with `gymnasium.wrappers.RescaleAction(env, -1.0, 1.0)`.
 
 ### Replay Buffer
 
@@ -103,6 +107,7 @@ episode = buffer.get_episode(0)  # dict of numpy arrays
 
 ```
 envs2d/
+├── __init__.py
 ├── lift2d/
 │   ├── env.py          # Lift2DEnv (gymnasium.Env) — step, reset, obs, reward
 │   ├── physics.py      # Pymunk space, walls, block, contact counting
@@ -122,12 +127,12 @@ envs2d/
 - [x] Gripper state machine with contact-based grasp detection
 - [x] Interactive teleoperation with mouse/keyboard
 - [x] Zarr replay buffer for demonstration recording
-- [x] Gymnasium-compatible API
+- [x] (Gym-style) env API 
 - [ ] Diffusion Policy and Behavior Cloning baselines
 - [ ] Push2D, Stack2D, PickPlace2D environments
 - [ ] pip-installable package (`pip install robomimic2d`)
 - [ ] Domain randomization (object size, mass, friction)
-- [ ] Gymnasium `register()` integration
+- [x] Gymnasium `register()` integration
 
 ## Tech Stack
 

@@ -41,9 +41,7 @@ def main(output, render_size, window):
                 print(f"Episode count: {seed}")
             else:
                 replay_buffer, seed = None, None
-
-            env.seed(seed)
-            env.reset()                   # rebuilds the scene, same window
+            env.reset(seed=seed)                   # rebuilds the scene, same window
             env.render_frame("human")
 
             controller = TeleopController(env.cfg, env.gripper.base.position)
@@ -60,7 +58,10 @@ def main(output, render_size, window):
                     break                  # falls through to reset, no window teardown
                 if cmd == "save":
                     break
-                obs, reward, done, info = env.step(act)
+                obs, reward, terminated, truncated, info = env.step(act)
+                done = terminated or truncated
+                # if truncated and not terminated:
+                #     retry = True  # timed out without success -> discard
                 img = env.render_frame("human")
 
                 grasped_str = "GRASPED ●" if info["grasped"] else "         "

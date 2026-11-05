@@ -14,15 +14,14 @@ from .render import Renderer
 class Lift2DEnv(gym.Env):
     """2D parallel-gripper lift task."""
 
-    metadata = {"render.modes": ["human", "rgb_array"], "video.frames_per_second": 10}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 10}
     reward_range = (0.0, 1.0)
 
-    def __init__(self, config: Lift2DConfig | None = None, reset_to_state=None, **overrides):
+    def __init__(self, config: Lift2DConfig | None = None, reset_to_state=None, render_mode: str | None = None, **overrides):
         self.cfg = config if config is not None else Lift2DConfig(**overrides)
         self.reset_to_state = reset_to_state
+        self.render_mode = render_mode
         self.latest_action = None
-        self._seed = None
-        self.seed()
 
         self.renderer = Renderer(self.cfg)
 
@@ -46,11 +45,12 @@ class Lift2DEnv(gym.Env):
 
     # ---- seeding -----------------------------------------------------------
 
-    def seed(self, seed=None):
-        if seed is None:
-            seed = np.random.randint(0, 25536)
-        self._seed = seed
-        self.np_random = np.random.default_rng(seed)
+    # def seed(self, seed=None):
+    #     """Not needed in Gym 1.3.x"""
+    #     if seed is None:
+    #         seed = np.random.randint(0, 25536)
+    #     self._seed = seed
+    #     self.np_random = np.random.default_rng(seed)
 
     # ---- lifecycle ---------------------------------------------------------
 
@@ -63,10 +63,13 @@ class Lift2DEnv(gym.Env):
             self.space, cfg, position=(cfg.window_size / 2, cfg.window_size - 80))
         self.contacts = ContactCounter(self.space)
 
-    def reset(self):
+    def reset(self, *, seed=None, options=None):
+        """ For Gymnasium 1.3 API""" 
+        super().reset(seed=seed)
         self._setup()
         self._lift_steps = 0
-        state = self.reset_to_state
+        self._steps = 0
+        state = (options or {}).get("reset_to_state", self.reset_to_state)
         if state is None:
             rs, ws = self.np_random, self.cfg.window_size
             bx = float(rs.integers(100, ws - 100))
@@ -75,7 +78,7 @@ class Lift2DEnv(gym.Env):
             gy = float(rs.integers(ws // 4, ws // 2))
             state = np.array([gx, gy, bx, by], dtype=np.float32)
         self._set_state(state)
-        return self._get_obs()
+        return self._get_obs(), self._get_info()
 
     def _set_state(self, state):
         gx, gy, bx, by = (float(v) for v in state[:4])
@@ -108,13 +111,19 @@ class Lift2DEnv(gym.Env):
         reward = 1.0 if lifted else 0.0 # robomimic style
         # reward = 1.0 if (lifted and self.gripper.grasped) else 0.0  # physically more accurate
         self._lift_steps = self._lift_steps + 1 if lifted else 0
-        done = self._lift_steps >= cfg.success_hold_steps
-        return self._get_obs(), reward, done, self._get_info()
+        self._steps += 1
+        truncated = self._steps >= cfg.max_episode_steps
+        terminated = self._lift_steps >= cfg.success_hold_steps
+        # truncated = False       # wrap with gymnasium.wrappers.TimeLimit if needed
+        return self._get_obs(), reward, terminated, truncated, self._get_info()
 
     # ---- render / obs / info ----------------------------------------------
 
-    def render(self, mode: str = "rgb_array"):
-        return self.render_frame(mode)
+    def render(self):
+        if self.render_mode is None:
+            return None
+        frame = self.render_frame(self.render_mode)
+        return None if self.render_mode == "human" else frame
 
     def render_frame(self, mode: str):
         return self.renderer.render(self.space, self.gripper, mode)

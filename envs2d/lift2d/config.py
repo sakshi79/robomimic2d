@@ -41,6 +41,7 @@ class Lift2DConfig:
     # Matches robomimic Lift (0.04 m); our units are ~cm, so 4.0.
     lift_threshold: float = 4.0  # 50.0 original
     success_hold_steps: int = 70  # consecutive lifted control steps before done (7 s at 10 Hz)
+    max_episode_steps: int = 400     # control steps before truncation (40 s at 10 Hz); must exceed success_hold_steps
 
     # control params
     sim_hz: int = 100
