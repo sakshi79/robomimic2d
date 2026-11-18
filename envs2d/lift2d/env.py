@@ -144,6 +144,7 @@ class Lift2DEnv(gym.Env):
             "block_pose": np.array(list(self.block.position) + [self.block.angle], dtype=np.float32),
             "grasped": self.gripper.grasped,
             "grip": float(self.gripper.grip_value),
+            "gripper_gap": float(self.gripper.right.position.x - self.gripper.left.position.x),
             "n_contacts": int(np.ceil(self.contacts.n / n_steps)),
         }
 

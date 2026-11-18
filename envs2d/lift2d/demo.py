@@ -41,8 +41,8 @@ def main(output, render_size, window):
                 print(f"Episode count: {seed}")
             else:
                 replay_buffer, seed = None, None
-            env.reset(seed=seed)                   # rebuilds the scene, same window
-            env.render_frame("human")
+            obs, info = env.reset(seed=seed)                   # rebuilds the scene, same window
+            img = env.render_frame("human")
 
             controller = TeleopController(env.cfg, env.gripper.base.position)
             episode, retry, done = [], False, False
@@ -58,24 +58,28 @@ def main(output, render_size, window):
                     break                  # falls through to reset, no window teardown
                 if cmd == "save":
                     break
+
+                # Save into buffer before next step
+                if replay_buffer is not None:
+                    state_vec = np.concatenate([info["pos_agent"], info["block_pose"]])
+                    episode.append({"img": img,
+                                    "state": np.float32(state_vec),
+                                    "gripper": np.float32([info["gripper_gap"]]),
+                                    "action": np.float32(act)})
+
                 obs, reward, terminated, truncated, info = env.step(act)
                 done = terminated or truncated
                 # if truncated and not terminated:
                 #     retry = True  # timed out without success -> discard
                 img = env.render_frame("human")
 
-                grasped_str = "GRASPED ●" if info["grasped"] else "         "
+                # grasped_str = "GRASPED ●" if info["grasped"] else "         "
                 g = env.gripper
-                gap = g.right.position.x - g.left.position.x
-                state_vec = np.concatenate([info["pos_agent"], info["block_pose"]])
+
                 print(f"\r reward={reward:.0f} "
-                      f"grip_val={g.grip_value:+.2f} gap={gap:5.1f}",
+                      f"grip_val={g.grip_value:+.2f} gap={info['gripper_gap']:5.1f}",
                       end="", flush=True)
 
-                if replay_buffer is not None:
-                    episode.append({"img": img,
-                                    "state": np.float32(state_vec),
-                                    "action": np.float32(act)})
                 clock.tick(env.cfg.control_hz)
 
             print()

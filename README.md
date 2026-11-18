@@ -70,10 +70,10 @@ python -m envs2d.lift2d
 python -m envs2d.lift2d -o data/lift.zarr
 ```
 
-An episode ends automatically once the block has stayed lifted for `success_hold_steps` consecutive control steps (default 70, i.e. 7 s at 10 Hz), or when you press `S` / Enter. Ended episodes are appended to the zarr replay buffer; `R` discards the current episode and `Q` quits without saving it. Recording resumes from the existing episode count, and episode *i* is seeded with `i` so its initial layout is reproducible. Each step stores `img` (render), `state` (gripper xy + block x, y, θ) and `action` (target x, target y, grip). Options: `--render-size` (default 96), `--window` (default 512).
+An episode ends automatically once the block has stayed lifted for `success_hold_steps` consecutive control steps (default 30, i.e. 3 s at 10 Hz), or when you press `S` / Enter. Ended episodes are appended to the zarr replay buffer; `R` discards the current episode and `Q` quits without saving it. Recording resumes from the existing episode count, and episode *i* is seeded with `i` so its initial layout is reproducible. Each step stores `img` (render, without the HUD), `state` (gripper xy + block x, y, θ), `gripper` (finger gap) and `action` (target x, target y, grip). Options: `--render-size` (default 96), `--window` (default 512).
 
 
-### Gymnasium-style API
+### Gymnasium API
 
 ```python
 import gymnasium as gym
@@ -85,7 +85,7 @@ obs, info = env.reset(seed=0) # obs['image']: (3,96,96), obs['agent_pos']: (2,)
 for step in range(1000):
     action = policy(obs)      # [target_x, target_y, grip]
     obs, reward, terminated, truncated, info = env.step(action)
-    # info: pos_agent, vel_agent, block_pose, grasped, grip, n_contacts
+    # info: pos_agent, vel_agent, block_pose, grasped, grip, gripper_gap, n_contacts
     if terminated or truncated:
         obs, info = env.reset()
 ```
@@ -103,6 +103,52 @@ print(f"{buffer.n_episodes} episodes, {buffer.n_steps} total steps")
 episode = buffer.get_episode(0)  # dict of numpy arrays
 ```
 
+## Policy Benchmarking
+
+Policies are trained with [robomimic](https://robomimic.github.io/) v0.5.0 and evaluated in Lift2D on held-out seeds.
+
+| Policy | Low-dim | Image |
+|---|---|---|
+| BC (MLP) | ✓ | ✓ |
+| BC-RNN (GMM) | ✓ | ✓ |
+| BC-Transformer (GMM) | ✓ | ✓ |
+| Diffusion Policy (U-Net) | ✓ | ✓ |
+
+**Observations:** low-dim uses `agent_pos` (2), `block_pose` (3) and `gripper` (1, finger gap). Image uses `image` (96×96 RGB, random-cropped to 84×84, ResNet-18 + spatial softmax), `agent_pos` and `gripper`.
+**Actions:** pixel-space targets, min-max normalized to [-1, 1] by robomimic and unnormalized at rollout time.
+
+### Setup
+
+```bash
+pip install "robomimic @ git+https://github.com/ARISE-Initiative/robomimic@v0.5.0" h5py
+```
+
+### Pipeline
+
+```bash
+# 1. Convert demos to robomimic hdf5 and split train/valid
+python -m scripts.zarr_to_robomimic -i data/lift.zarr -o data/lift2d.hdf5
+python -m robomimic.scripts.split_train_val --dataset data/lift2d.hdf5 --ratio 0.1
+
+# 2. Generate configs (4 policies × {low_dim, image})
+python -m scripts.make_configs --dataset data/lift2d.hdf5 --out configs/lift2d --output-dir runs/lift2d
+
+# 3. Train
+python -m robomimic.scripts.train --config configs/lift2d/diffusion_policy_image.json
+
+# 4. Evaluate every checkpoint on 50 held-out seeds and print a summary table
+SDL_VIDEODRIVER=dummy python -m scripts.eval_policy --run runs/lift2d --summary --episodes 50
+```
+
+Training runs `--num-epochs` × 100 gradient steps (default 300 → 30k steps). robomimic's built-in rollouts are disabled, so `scripts/eval_policy.py` evaluates checkpoints in the Gymnasium env instead.
+
+**Evaluation protocol:** evaluation seeds start at 100000, so they never overlap the demo layouts (seeds 0…N−1). An episode succeeds when `terminated` is True, meaning the block was held lifted for `success_hold_steps`; it fails when truncated at `max_episode_steps`. We report the best success rate across checkpoints and the success rate at the final checkpoint. Per-checkpoint results are saved to `eval.json` in each run directory. Add `--render` to watch rollouts.
+
+### Results
+
+*Coming soon.*
+
+
 ## Architecture
 
 ```
@@ -118,6 +164,10 @@ envs2d/
 │   └── demo.py         # CLI entry point for interactive + recording
 ├── replay_buffer.py    # Zarr-backed episodic replay buffer with chunking/compression
 └── pymunk_override.py  # Pymunk rendering utilities
+scripts/
+├── zarr_to_robomimic.py  # zarr replay buffer → robomimic hdf5
+├── make_configs.py       # robomimic configs for each policy × observation type
+└── eval_policy.py        # Gymnasium rollouts on held-out seeds, success-rate table
 ```
 
 ## Roadmap
@@ -127,8 +177,9 @@ envs2d/
 - [x] Gripper state machine with contact-based grasp detection
 - [x] Interactive teleoperation with mouse/keyboard
 - [x] Zarr replay buffer for demonstration recording
-- [x] (Gym-style) env API 
-- [ ] Diffusion Policy and Behavior Cloning baselines
+- [x] Gymnasium-compatible API
+- [x] Policy benchmark pipeline via robomimic (BC, BC-RNN, BC-Transformer, Diffusion Policy)
+- [ ] Benchmark results
 - [ ] Push2D, Stack2D, PickPlace2D environments
 - [ ] pip-installable package (`pip install robomimic2d`)
 - [ ] Domain randomization (object size, mass, friction)
@@ -140,7 +191,8 @@ envs2d/
 **Rendering:** Pygame  
 **Data:** NumPy, zarr (chunked, compressed episodic replay)  
 **API:** Gymnasium 1.3.0  
-**Designed for:** PyTorch policy learning (Diffusion Policy, BC, DQN)
+**Policy learning:** robomimic 0.5.0 (BC, BC-RNN, BC-Transformer, Diffusion Policy), PyTorch
+
 
 ## Related Work
 

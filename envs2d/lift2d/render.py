@@ -37,13 +37,13 @@ class Renderer:
         mid = ((lp[0]+rp[0])//2, (lp[1]+rp[1])//2)
         pygame.draw.line(canvas, (100, 120, 160), lp, rp, 3)
         pygame.draw.line(canvas, (100, 120, 160), bp, mid, 3)
-        self._draw_hud(canvas, gripper)
+        img = np.transpose(np.array(pygame.surfarray.pixels3d(canvas)), axes = (1,0,2))  # obs: no HUD
         if mode == "human":
+            self._draw_hud(canvas, gripper)
             self.window.blit(canvas, canvas.get_rect())
             pygame.event.pump()
             pygame.display.update()
             self.clock.tick(cfg.control_hz)
-        img = np.transpose(np.array(pygame.surfarray.pixels3d(canvas)), axes = (1,0,2))
         return cv2.resize(img, (cfg.render_size, cfg.render_size), interpolation = cv2.INTER_AREA)
 
     def _draw_hud(self, canvas, gripper):
