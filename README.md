@@ -211,7 +211,7 @@ MIT
 @software{bhatia2025robomimic2d,
   author = {Bhatia, Sakshi},
   title = {RoboMimic2D: Lightweight 2D Manipulation Benchmarks for Policy Learning},
-  year = {2025},
+  year = {2026},
   url = {https://github.com/sakshi79/robomimic2d}
 }
 ```

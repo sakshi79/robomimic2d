@@ -32,6 +32,8 @@ def make_obs(obs, info, keys):
 
 
 def rollout(policy, env, seed, frame_stack, obs_keys, render):
+    torch.manual_seed(seed)   # GMM / diffusion sampling is stochastic; fix it per episode
+    np.random.seed(seed)
     obs, info = env.reset(seed=seed)
     policy.start_episode()
     history = deque([make_obs(obs, info, obs_keys)] * frame_stack, maxlen=frame_stack)
@@ -82,7 +84,7 @@ def eval_run(run_dir, n_episodes, render, device):
 
 @click.command()
 @click.option("--run", "run_path", required=True, help="a run dir (contains models/), or a parent dir with --summary")
-@click.option("--episodes", "n_episodes", default=50, type=int, show_default=True)
+@click.option("--episodes", "n_episodes", default=300, type=int, show_default=True)
 @click.option("--summary", is_flag=True, help="evaluate every run under --run and print a table")
 @click.option("--render", is_flag=True, help="show rollouts in a window")
 def main(run_path, n_episodes, summary, render):
